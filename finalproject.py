@@ -238,3 +238,159 @@ for diction in movie_dictionaries:
 
 
 
+
+## Begin setup for Movie database
+
+conn = sqlite3.connect("finalproject.db")
+cur = conn.cursor()
+
+cur.execute("DROP TABLE IF EXISTS Movies")
+table_spec1 = "CREATE TABLE IF NOT EXISTS Movies (movie_ID TEXT PRIMARY KEY, title TEXT, director TEXT, IMDB_rating TEXT, top_actor TEXT, num_of_languages INTEGER)"
+cur.execute(table_spec1)
+
+## Write code to insert Movie data into Movie database from the instances list
+
+mov_statement = "INSERT INTO Movies VALUES (?, ?, ?, ?, ?, ?)"
+
+for inst in movie_instances:
+	cur.execute(mov_statement, inst.tuple_generate())
+
+conn.commit()
+
+## Begin setup for Tweets database
+
+cur.execute("DROP TABLE IF EXISTS Tweets")
+table_spec2 = "CREATE TABLE IF NOT EXISTS Tweets (tweet_ID INTEGER PRIMARY KEY, tweet_text TEXT, user TEXT, movie_search TEXT, num_favorites INTEGER, num_retweets INTEGER)"
+cur.execute(table_spec2)
+
+
+## Write code to insert tweet data into Tweets database
+
+
+
+
+
+## Begin setup for Users database
+cur.execute("DROP TABLE IF EXISTS Users")
+table_spec3 = "CREATE TABLE IF NOT EXISTS Users (user_ID INTEGER PRIMARY KEY, screen_name TEXT, num_favorites_all INTEGER)"
+cur.execute(table_spec3)
+
+## Write code to insert user data into User database
+
+##~~~~~~~~ Again, ignore all this code. I need to understand Tweet_User class before I can do anything more with Users database ~~~~~~~~~~~~
+
+# user_statement = "INSERT or IGNORE INTO Users VALUES (?,?,?,?)"
+
+# user_ids = []
+# for tweet in umich_tweets:
+#     for user in tweet["entities"]["user_mentions"]:
+#         user_ids.append(user["screen_name"])
+
+# user_ids.insert(0, '@umich')
+
+# for user in user_ids:
+# 	api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
+#     user = api.get_user(user)
+#     user_id = user["id"]
+#     screen_name = user["screen_name"]
+#     num_favs = user["favourites_count"]
+
+#     total_tweet = (user_id, screen_name, num_favs)
+
+#     cur.execute(user_statement, total_tweet)
+
+## Begin processing the data from the database:
+	## 1. Make queries to the database to grab intersections of data, and then use at least four of the processing mechanisms (INNER JOIN needs to be used between the databases -- SEE INSTRUCTIONS)
+		## - Possibly use list comprehensions
+		## - Look up different things you can do with the collections library!
+	## 2. Write that data to a text file -- a sort of "summary stats" page with a clear title
+		## - Focus on tweet stats since that's what I want my CSV file to be based on.
+		## - <List your 3 movie titles> + Twitter summary, <current date>
+				## - Tweet summary = Num of tweets, num of retweets, num of faves, length of tweets (?), etc.
+	## 3. Make a CSV file? Analyse data to see which of the 3 movies are most popular on Twitter, and make pie charts comparing the three!
+
+
+##~~~~~~ I will work on the queries and output stuff at a later time ~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ##---------- TEST CASES ----------
+# class CachingTests(unittest.TestCase):
+# 	def test_caching(self):
+# 		cache = open("finalproject.json","r")
+# 		s = cache.read()
+# 		cache.close()
+# 		self.assertTrue("Twilight" in s, 'test to see that one of the movies titles I choose is in the cache')
+
+# 	def test_caching_type(self):
+# 		self.assertEqual(type(CACHE_DICTION), type({}))
+
+
+# class MovieTests(unittest.TestCase):
+# 	def test_movie1(self):
+# 		m = Movie()
+# 		self.assertEqual(type(m.title), type(""), 'Checking to make sure that the instance variable .title is a string')
+
+# 	def test_movie2(self):
+# 		m = Movie()
+# 		self.assertEqual(type(m.imdb_rating), type(1), 'testing that the imdb_rating instance variable is an integer')
+
+# class TweetTests(unittest.TestCase):
+# 	def test_tweet1(self):
+# 		t = Tweet()
+# 		self.assertEqual(type(t.unique), type(""), "testing that the unique instance variable is a string type")
+
+# class DatabaseTests(unittest.TestCase):
+# 	def test_db1(self):
+# 		conn = sqlite3.connect('finalproject.db')
+# 		cur = conn.cursor()
+# 		cur.execute('SELECT * FROM Users');
+# 		result = cur.fetchall()
+# 		self.assertTrue(len(result[0])==3,"Testing that there are 3 columns in the Users database")
+# 		conn.close()
+# 	def test_db2(self):
+# 		conn = sqlite3.connect('finalproject.db')
+# 		cur = conn.cursor()
+# 		cur.execute('SELECT * FROM Tweets');
+# 		result = cur.fetchall()
+# 		self.assertTrue(len(result[0])==6,"Testing that there are 6 columns in the Users database")
+# 		conn.close()
+# 	def test_db3(self):
+# 		conn = sqlite3.connect('project3_tweets.db')
+# 		cur = conn.cursor()
+# 		cur.execute('SELECT * FROM Movies');
+# 		result = cur.fetchall()
+# 		self.assertTrue(len(result[0])==6,"Testing that there are 6 columns in the Users database")
+# 		conn.close()
+
+
+
+
+
+
+# if __name__ == "__main__":
+# 	unittest.main(verbosity=2)
