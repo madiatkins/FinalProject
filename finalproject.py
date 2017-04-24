@@ -14,7 +14,7 @@ from pprint import pprint
 import sys
 import codecs
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer) 
-##to deal with emojies and other languages
+##to deal with emojies and other non-English languages
 
 ##Tweepy setup
 
@@ -32,7 +32,7 @@ movie_titles = ["Hidden Figures", "Rogue One", "Lazer Team"]
 
 ## Create initial cache setup
 
-CACHE_FNAME = "finalproject.json"
+CACHE_FNAME = "206_final_project_cache.json"
 # Put the rest of your caching setup here:
 try:
 	cache_file = open(CACHE_FNAME,'r')
@@ -57,7 +57,8 @@ def get_user_tweets(username):
 			tweets.append(tweet)
 	else:
 		print('fetching')
-		public_tweets = api.user_timeline(id=username)
+		api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
+		public_tweets = api.get_user(id=username)
 		CACHE_DICTION[twitter_phrase] = public_tweets
 		response_text = public_tweets
 
@@ -65,9 +66,12 @@ def get_user_tweets(username):
 		cache_file.write(json.dumps(CACHE_DICTION))
 		cache_file.close()
 
-		for tweet in response_text:
-			tweets.append(tweet)
-	return tweets
+	# 	# for tweet in response_text:
+	# 		tweets.append(tweet)
+	# return tweets
+	return response_text
+
+# print(get_user_tweets("nerdofinfo"))
 
 ## Define your functino get_tweets to fetch and cache tweets based on a Twitter phrase (in this case, movie titles):
 
@@ -154,6 +158,7 @@ class Movie(object):
 class Tweet(object):
 	
 	def __init__(self, tweet_list, movie_titles):
+		self.tweet_list = tweet_list
 		self.search = []
 		self.text = []
 		self.id = []
@@ -171,24 +176,33 @@ class Tweet(object):
 			self.retweets.append(tweet["retweet_count"])
 
 	def zip_lists(self):
-		m = zip(self.search, self.text, self.id, self.user, self.favorites, self.retweets)
+		m = zip(self.id, self.text, self.user, self.search, self.favorites, self.retweets)
 		w = list(m)
 		return w
 
+	def user_mentions(self):
+		user_ids = []
+		for tweet in self.tweet_list:
+			for user in tweet["entities"]["user_mentions"]:
+				user_ids.append(user["screen_name"])
+		return user_ids
 
 
-# testing = get_tweets("Hidden Figures")
-# test = Tweet(tweet_list = testing, movie_title = "Hidden Figures")
-# print(test.zip_lists())
 
-
-
-## Define a class "Tweet_User" which should accept [INSERT] and generate a tule for later use in the Users database
+# ## Define a class "Tweet_User" which should accept [INSERT] and generate a tule for later use in the Users database
 
 class Tweet_User(object):
-	def __init__(self, user_diction):
-		pass
-##~~~~~~ I am still very confused as to what the project instructions are calling for when they get data on all the users in the neighborhod of a tweet. So which tweets should I be getting these users from? The get_tweets() function? Then grabbing the users from that and inputting those into the get_user_tweets() function? Thanks!! ~~~~~~~~~~
+	def __init__(self, user_tweets):
+		self.user_tweets = user_tweets
+
+		self.user_id = self.user_tweets["id"]
+		self.screen_name = self.user_tweets["screen_name"]
+		self.num_favs = self.user_tweets["favourites_count"]
+
+	def user_tups(self):
+		total_tweet = (self.user_id, self.screen_name, self.num_favs)
+		return total_tweet
+
 
 
 
@@ -207,20 +221,32 @@ tweet_instances=[]
 for diction in tweet_dictionaries:
 	tweet_instances.append(Tweet(tweet_list=diction, movie_titles = movie_titles))
 
-# for inst in tweet_instances:
-# 	m = inst.zip_lists()
-# 	print(m)
-## Write an invocation to the function for a user timeline and save the result in a unique variable:
 
-user_tweets_dictionaries = []
 
-##~~~~~~~ Need help with understanding what is needs of Tweet_User class first ~~~~~~~~~~~~
 
-## Create a list of instances of the Tweet_User class for each of the dictionaries in the tuser_tweets_dictionaries list
+## Create a list of tweet dictionaries of the of the get_user_tweets() function for the users mentioned in the tweets in the Tweets class
+
+user_dictionaries = []
+for inst in tweet_instances:
+	for user in inst.user_mentions():
+		user_dictionaries.append(get_user_tweets(user))
+
+## Create a list of tweet dictionaries of the get_user_tweets function for the users who posted tweets in the Tweets class
+
+user_dictionaries2 = []
+for inst in tweet_instances:
+	for name in inst.user:
+		user_dictionaries2.append(get_user_tweets(name))
+
+## Create a list of instances of the User class for each of the dicitonaries
 
 user_instances = []
+for diction in user_dictionaries:
+	user_instances.append(Tweet_User(user_tweets = diction))
 
-##~~~~~~~ Need help with understanding what is needs of Tweet_User class first ~~~~~~~~~~~~
+for diction in user_dictionaries2:
+	user_instances.append(Tweet_User(user_tweets = diction))
+
 
 ## Create a list of dictionaries calling on the OMDB function for each of the movie titles in the movie_titles list
 
@@ -266,7 +292,12 @@ cur.execute(table_spec2)
 
 ## Write code to insert tweet data into Tweets database
 
+tweet_statement = "INSERT INTO Tweets VALUES (?, ?, ?, ?, ?, ?)"
 
+for inst in tweet_instances:
+	for tup in inst.zip_lists():
+		cur.execute(tweet_statement, tup)
+conn.commit()
 
 
 
@@ -277,27 +308,13 @@ cur.execute(table_spec3)
 
 ## Write code to insert user data into User database
 
-##~~~~~~~~ Again, ignore all this code. I need to understand Tweet_User class before I can do anything more with Users database ~~~~~~~~~~~~
+user_statement = "INSERT or IGNORE INTO Users VALUES (?,?,?)"
 
-# user_statement = "INSERT or IGNORE INTO Users VALUES (?,?,?,?)"
+for inst in user_instances:
+	cur.execute(user_statement, inst.user_tups())
 
-# user_ids = []
-# for tweet in umich_tweets:
-#     for user in tweet["entities"]["user_mentions"]:
-#         user_ids.append(user["screen_name"])
+conn.commit()
 
-# user_ids.insert(0, '@umich')
-
-# for user in user_ids:
-# 	api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
-#     user = api.get_user(user)
-#     user_id = user["id"]
-#     screen_name = user["screen_name"]
-#     num_favs = user["favourites_count"]
-
-#     total_tweet = (user_id, screen_name, num_favs)
-
-#     cur.execute(user_statement, total_tweet)
 
 ## Begin processing the data from the database:
 	## 1. Make queries to the database to grab intersections of data, and then use at least four of the processing mechanisms (INNER JOIN needs to be used between the databases -- SEE INSTRUCTIONS)
@@ -310,7 +327,42 @@ cur.execute(table_spec3)
 	## 3. Make a CSV file? Analyse data to see which of the 3 movies are most popular on Twitter, and make pie charts comparing the three!
 
 
-##~~~~~~ I will work on the queries and output stuff at a later time ~~~~~~~~
+
+two = "SELECT *FROM Tweets WHERE num_retweets>5"
+cur.execute(two)
+more_than_5_rts = cur.fetchall()
+
+# print(more_than_5_rts)
+
+f = "SELECT tweet_text FROM Tweets INNER JOIN Movies where IMDB_rating>5"
+g = cur.execute(f)
+joined_result = g.fetchall()
+
+# print(joined_result)
+
+w = "SELECT *FROM Users WHERE num_favorites_all >5"
+cur.execute(w)
+more_than_5_favs = cur.fetchall()
+
+# print(more_than_5_favs)
+
+y = "SELECT screen_name FROM Users INNER JOIN Movies where IMDB_rating>5"
+r = cur.execute(y)
+screen_names = [x[0] for x in r.fetchall()]
+
+# print(screen_names)
+
+m = "SELECT *FROM Movies WHERE IMDB_rating>5"
+a = cur.execute(m)
+joined_results = a.fetchall()
+
+# print(joined_results)
+
+d = "SELECT director FROM Movies WHERE IMDB_rating>5"
+h = cur.execute(d)
+results = h.fetchall()
+
+# print(results)
 
 
 
@@ -327,24 +379,13 @@ cur.execute(table_spec3)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-# ##---------- TEST CASES ----------
+# # ##---------- TEST CASES ----------
 # class CachingTests(unittest.TestCase):
 # 	def test_caching(self):
 # 		cache = open("finalproject.json","r")
 # 		s = cache.read()
 # 		cache.close()
-# 		self.assertTrue("Twilight" in s, 'test to see that one of the movies titles I choose is in the cache')
+# 		self.assertTrue("Rogue One" in s, 'test to see that one of the movies titles I choose is in the cache')
 
 # 	def test_caching_type(self):
 # 		self.assertEqual(type(CACHE_DICTION), type({}))
@@ -357,34 +398,38 @@ cur.execute(table_spec3)
 
 # 	def test_movie2(self):
 # 		m = Movie()
-# 		self.assertEqual(type(m.imdb_rating), type(1), 'testing that the imdb_rating instance variable is an integer')
+# 		self.assertEqual(type(m.rating), type(""), 'testing that the imdb_rating instance variable is a string')
+# 	def test_movie3(self):
+# 		m = Movie()
+# 		self.assertEqual(type(m.tuple_generate()), type(()), 'Testing that tuple_generate method is a tuple')
 
 # class TweetTests(unittest.TestCase):
 # 	def test_tweet1(self):
 # 		t = Tweet()
-# 		self.assertEqual(type(t.unique), type(""), "testing that the unique instance variable is a string type")
+# 		self.assertEqual(type(t.retweets[0]), type(int()), "testing that the retweets instance variable is a string type")
 
+# ##~~~~~~~~ Confused about how to write database tests????? ~~~~~~~~
 # class DatabaseTests(unittest.TestCase):
 # 	def test_db1(self):
 # 		conn = sqlite3.connect('finalproject.db')
 # 		cur = conn.cursor()
 # 		cur.execute('SELECT * FROM Users');
 # 		result = cur.fetchall()
-# 		self.assertTrue(len(result[0])==3,"Testing that there are 3 columns in the Users database")
+# 		self.assertTrue(len(result)==3,"Testing that there are 3 columns in the Users database")
 # 		conn.close()
 # 	def test_db2(self):
 # 		conn = sqlite3.connect('finalproject.db')
 # 		cur = conn.cursor()
 # 		cur.execute('SELECT * FROM Tweets');
 # 		result = cur.fetchall()
-# 		self.assertTrue(len(result[0])==6,"Testing that there are 6 columns in the Users database")
+# 		self.assertTrue(len(result)==6,"Testing that there are 6 columns in the Tweets database")
 # 		conn.close()
 # 	def test_db3(self):
-# 		conn = sqlite3.connect('project3_tweets.db')
+# 		conn = sqlite3.connect('finalproject.db')
 # 		cur = conn.cursor()
 # 		cur.execute('SELECT * FROM Movies');
 # 		result = cur.fetchall()
-# 		self.assertTrue(len(result[0])==6,"Testing that there are 6 columns in the Users database")
+# 		self.assertTrue(len(result)==6,"Testing that there are 6 columns in the Movies database")
 # 		conn.close()
 
 
